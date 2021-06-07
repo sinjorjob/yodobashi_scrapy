@@ -28,9 +28,9 @@ try:
             bs = r_get(category_url, category)
             #Googleスプレッドシートにヘッダ情報を書き込む（既にシートがあればスキップ）
             add_header_info_to_spread(category, HEADER, 1000, 324)
-            #カテゴリシートの最終行INDEX番号を取得
-            last_idx = get_last_index(category)
-            datas = [] #スプレッドシートに書き込む全データ   
+            datas = [] #スプレッドシートに書き込む全データ   #最終行にある製品モデルの枝番を取得
+            #モデル番号の枝番を取得
+            model_count = get_model_count(category)
 
             #次のページが存在する間ループ
             while next_page_flag:
@@ -74,8 +74,9 @@ try:
                             if is_product_id(category, product_id):
                                 #存在する場合は報収取得処理をスキップして次の商品ループへ進む。
                                 continue
+                            
                             #製品のモデル番号の生成
-                            model_number_data = model_number + str(last_idx) 
+                            model_number_data = model_number + str(model_count) 
                             #製品情報の取得(製品名,価格,スペック,説明,モデル番号,イメージURL)
                             product_name, product_price, product_spec, description, main_img_url = get_item_info(bs_target_item, category)
                            
@@ -84,8 +85,8 @@ try:
                             #製品情報をリストに追加する。
                             datas.append([product_id, product_name,"",zaiko_status, model_number_data,"", "", product_price,"", "", "",
                                       "", "",COMPANY_NAME," "," "," "," "," "," "," "," "," "," ", main_img_url,"","","",description])
-                            #モデル番号を生成するインデックスを＋１する
-                            last_idx += 1
+                            #モデル番号を生成する枝番を＋１する
+                            model_count += 1
                             #登録対象製品数のカウントを＋１する。
                             new_item_count += 1
                 

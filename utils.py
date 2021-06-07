@@ -2,6 +2,7 @@ import requests
 import logging
 import os
 import sys
+import re
 import gspread
 import time
 import pandas as pd
@@ -434,3 +435,26 @@ def get_translate_categorys():
     #A列(商品ID)のデータを配列として取得
     category_array = ws.col_values(1)
     return category_array
+
+
+def get_model_count(category):
+    """
+    対象カテゴリシートに存在する最終行の製品のモデル番号を取得する。
+    引数：なし    
+    戻り値：最終行の製品のモデル番号の枝番(model35 -> 35)
+    """
+    #最終行の位置を取得
+    last_idx = get_last_index(category)
+    #既存の製品情報がある場合(=2行以上ある)
+    if last_idx >= 2:
+        ws = open_google_spread()
+        ws = ws.worksheet(category)
+        #最終行のデータのみ取得
+        last_row_data =ws.row_values(last_idx)
+        #最終行にある製品のモデルナンバーの枝番を取得(model23 -> 23)
+        m = re.search(r"-*([0-9]+)",last_row_data[4])
+        model_count = int(m.group(0)) + 1
+    else:
+        #既存データがない場合は枝番を１からスタート
+        model_count = 1
+    return model_count
