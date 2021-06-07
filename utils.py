@@ -35,10 +35,13 @@ def get_cagegory_to_retrieve():
     戻り値：読み込んだシートのデータ
     """
     try:
+        
         #ファイルオープン
         ws = open_google_spread()
+        
         #シート「取得するカテゴリ」をアクティブ
         ws = ws.worksheet(CATEGORY_TO_RETRIEVE)
+        
         #シート全体の情報を取得
         splead_datas = ws.get_all_values()
         return splead_datas
@@ -72,8 +75,10 @@ def start_logging():
     if not os.path.exists(logdir):
         # ディレクトリが存在しない場合、ディレクトリを作成する
         os.makedirs(logdir)
+    
     #現在時刻の取得
     date_time = datetime.now().strftime("%Y%m%d-%H%M%S")  
+    
     #ファイル名の生成
     file_name = os.path.join(logdir, "yodobashi_"  + date_time + ".log")
     logging.basicConfig(filename=file_name,level=logging.INFO,format='%(asctime)s %(message)s', 
@@ -136,10 +141,12 @@ def is_exists_class_name(bs, class_name):
     """
     is_exists_flag = False
     try:
+        
         # class有無を判定する
         if len(bs.select('.' + class_name)) > 0 or class_name in bs["class"]:
             is_exists_flag = True
     except (KeyError, AttributeError):
+        
         # 存在しない場合（＝エラーの場合）はfalseを返却する
         pass
     return is_exists_flag
@@ -154,13 +161,13 @@ def open_google_spread():
     """    
     #2つのAPIを記述しないとリフレッシュトークンを3600秒毎に発行し続けなければならない
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    #認証情報設定
+    
     #ダウンロードしたjsonファイル名をクレデンシャル変数に設定（秘密鍵、Pythonファイルから読み込みしやすい位置に置く）
     credentials = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEYFILE_NAME, scope)
+    
     #OAuth2の資格情報を使用してGoogle APIにログインします。
     gc = gspread.authorize(credentials)
-    #共有設定したスプレッドシートキーを変数[SPREADSHEET_KEY]に格納する。
-    #SPREADSHEET_KEY = '1wJwtfPjnapc2pkT9Vhg734TGdtZloZRcj6OjcrrJn_A'
+    
     #共有設定したスプレッドシートを開く
     ws = gc.open_by_key(SPREADSHEET_KEY)
     return ws
@@ -174,13 +181,16 @@ def add_product_info_to_spread(category, datas):
     戻り値：なし
     """
     try:
-         #スプレッドシートを開く
+        
+        #スプレッドシートを開く
         ws = open_google_spread()
+        
         #追加したカテゴリーシートを選択
         ws = ws.worksheet(category)
-        #取得した製品データを最終行の下に追記
+        
         #A列のデータを配列として取得
         A_COL_ARRAY = ws.col_values(1)
+        
         #最下行インデックスを取得
         LAST_ROW_IDX = len(A_COL_ARRAY)
         ws.append_rows(datas, table_range="A" + str(LAST_ROW_IDX + 1))
@@ -200,17 +210,21 @@ def add_header_info_to_spread(category, header,rows, cols):
     戻り値：なし
     """
     try:
+        
         #スプレッドシートを開く
         ws = open_google_spread()
+        
         #カテゴリ名のシートを作成
         try:
             ws.add_worksheet(title=category,rows=rows, cols=cols)
         except gspread.exceptions.APIError:
+            
             #既にシートが存在する場合AIPErrorが発生するのでスキップして処理を続行させる。
             pass
             
         #追加したカテゴリーシートを選択
         ws = ws.worksheet(category)
+        
         #Header情報を追記
         ws.append_row(header)
     except Exception as e:
@@ -225,12 +239,16 @@ def get_last_index(category):
     戻り値：シートの最終行インデックス番号
     """
     try:
+        
         #ファイルオープン
         ws = open_google_spread()
+        
         #シート「取得するカテゴリ」をアクティブ
         ws = ws.worksheet(category)
+        
         #A列のデータを配列として取得 
         A_COL_ARRAY = ws.col_values(1)
+        
         #最下行インデックスを取得
         LAST_ROW_IDX = len(A_COL_ARRAY)
     except Exception as e:
@@ -250,15 +268,19 @@ def is_product_id(category, product_id):
     戻り値：True(存在する） or False(存在しない）
     """
     try:
+        
         #ファイルオープン
         ws = open_google_spread()
+        
         #シートをアクティブ
         try:
             ws = ws.worksheet(category)
         except gspread.exceptions.APIError as e:
+            
             #既にシートが存在する場合AIPErrorが発生するのでスキップして処理を続行させる。
             message = '[ERROR]' + 'gspred関連のエラーが発生しました。エラー内容を確認してください。'
             write_error_log(message, e)
+        
         #A列(商品ID)のデータを配列として取得
         product_array = ws.col_values(1)
     except Exception as e:
@@ -279,31 +301,35 @@ def get_item_info(bs_target_item, category):
     　　　　description（製品説明）, main_img_url（製品のイメージURL)
     """
     try:
+        
         #製品名の取得
         product_name = bs_target_item.find("p", class_= "js_ppPrdName").text
+        
         #製品価格の取得
         product_price =bs_target_item.find("span", class_="price js_ppSalesPrice").text.split("￥")[-1]
+        
         #メインイメージ
         main_img_url = bs_target_item.find(id="mainImg")["src"]
+        
         #製品説明の取得
         product_description = (bs_target_item.find(id="pinfo_productSummury")).get_text('\n')
+        
         #製品概要と正しく一致比較させるために改行コードを削除
         product_description = product_description.replace( '\n' , '' )
-
-        #製品概要と製品説明を比較するために改行を除外したデータを生成
-        #product_description_excluded = [elem.replace("\n","") for elem in product_description]
-        #product_description_excluded = '\n'.join(product_description_excluded)
 
         #製品概要一式の取得
         bs_product_overview = bs_target_item.select("ul.pDescription li div.pDesBody")
         
         if bs_product_overview: #製品概要が空の場合がある。
             product_overview = [ overview.get_text('\n') for overview in bs_product_overview]
+            
             #連結して１つの文字列にする。
             product_overview = ''.join(product_overview)
+            
             #製品説明と正しく一致比較させるために改行コードを削除
             product_overview = product_overview.replace( '\n' , '' )
         else:
+            
             #製品概要が空の場合はエラーを回避するため「概要情報なし」を入れる。
             product_overview = "製品の概要情報なし"
 
@@ -313,12 +339,12 @@ def get_item_info(bs_target_item, category):
         product_spec = '\n'.join(product_spec)
 
         if bs_product_overview:
-            #if product_description_excluded == bs_product_overview[0].text:
             if product_description == product_overview:
                 description = main_img_url + "\n■商品説明\n" + product_description + "■\n商品スペック\n" + product_spec
             else:
                 description = main_img_url +"\n■商品説明\n" + product_description +"\n■商品概要\n" + product_overview + "\n■商品スペック\n" +product_spec
         else:
+            
             #製品概要がない場合は商品説明だけ記載する。
             description = main_img_url +"\n■商品説明\n" + product_description  + "\n■商品スペック\n" +product_spec
     except Exception as e:
@@ -350,28 +376,41 @@ def write_to_excel(category):
     引数2：カテゴリ名    
     戻り値：なし
     """
+    
     #ファイルオープン
     ws = open_google_spread()
+    
     #指定カテゴリのシートを選択
     ws = ws.worksheet(category)
+    
     #指定したカテゴリシートの全データを取得
     spread_datas = ws.get_all_values()
+    
     #翻訳処理を開始
     for data in spread_datas[1:]:
+        
         #製品名(B列）を日本語→韓国語に翻訳
         data[1] = translate_ja_to_ko(data[1],category)
+        
         #説明(AC列）を日本語→韓国語に翻訳
         data[28] = translate_ja_to_ko(data[28],category)
         
+        #翻訳したAC列をAD列(説明2とする）にコピー
+        data[29] = data[28]
+        
     # Excelファイルのカラムを定義
     Coulum = spread_datas[0]
+    
     # データフレームを作成
     df = pd.DataFrame(spread_datas[1:], columns=Coulum)
+    
     #ファイルパスを生成
     file_dir= os.path.join(os.getcwd(), "data")
     if not os.path.exists(file_dir):
+        
         # ディレクトリが存在しない場合、ディレクトリを作成する
         os.makedirs(file_dir)
+    
     #現在日時を取得
     date_time = datetime.now().strftime("%Y%m%d_%H%M%S")  
     file_path = os.path.join(file_dir, "yodobashi_" + category + "_"  + date_time + ".xlsx")
@@ -388,15 +427,18 @@ def translate_ja_to_ko(text,category):
     戻り値：文章（韓国語）
     """
     POST_URL = "https://naveropenapi.apigw.ntruss.com/nmt/v1/translation"
+    
     # ボディーの定義
     request_body = {'source': 'ja',
                     'target': 'ko',
                     'text': text}
+    
     # ヘッダ情報の定義
     headers = {"X-NCP-APIGW-API-KEY-ID":CLIENT_ID,
                "X-NCP-APIGW-API-KEY": CLIENT_SECRET,
                "Content-Type Content-Type" : "application/json"}
     try:
+        
         # POSTリクエスト送信
         response = requests.post(POST_URL, json=request_body, headers=headers)
         response = response.json()
@@ -415,8 +457,10 @@ def get_sheet_list():
     戻り値：シート名のリスト
     """
     ws = open_google_spread()
+    
     #すべてのシート名を取得
     sheet_list = ws.worksheets()
+    
     #シート名を取り出す
     sheet_list = [sheet.title for sheet in sheet_list]
     return sheet_list
@@ -428,10 +472,13 @@ def get_translate_categorys():
     引数：なし    
     戻り値：翻訳をするカテゴリのA列のデータ
     """
+    
     #ファイルオープン
     ws = open_google_spread()
+    
     #シートをアクティブ
     ws = ws.worksheet(SHEET_TO_TRANSLATE)
+    
     #A列(商品ID)のデータを配列として取得
     category_array = ws.col_values(1)
     return category_array
@@ -443,18 +490,23 @@ def get_model_count(category):
     引数：なし    
     戻り値：最終行の製品のモデル番号の枝番(model35 -> 35)
     """
+    
     #最終行の位置を取得
     last_idx = get_last_index(category)
+    
     #既存の製品情報がある場合(=2行以上ある)
     if last_idx >= 2:
         ws = open_google_spread()
         ws = ws.worksheet(category)
+        
         #最終行のデータのみ取得
         last_row_data =ws.row_values(last_idx)
+        
         #最終行にある製品のモデルナンバーの枝番を取得(model23 -> 23)
         m = re.search(r"-*([0-9]+)",last_row_data[4])
         model_count = int(m.group(0)) + 1
     else:
+        
         #既存データがない場合は枝番を１からスタート
         model_count = 1
     return model_count
