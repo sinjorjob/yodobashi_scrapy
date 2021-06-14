@@ -109,7 +109,7 @@ def r_get(url, category):
         headers = {'User-Agent': 'Sample Header'}
         response = requests.get(url,  headers=headers)
         response.encoding = response.apparent_encoding
-        bs = BeautifulSoup(response.text, 'html.parser')
+        bs = BeautifulSoup(response.text, 'lxml')
         if not is_valid_page(bs):
             logging.info('[ERROR]指定したURL：' + url + 'が存在しません。')
             sys.exit(1)
@@ -376,45 +376,51 @@ def write_to_excel(category):
     引数2：カテゴリ名    
     戻り値：なし
     """
-    
-    #ファイルオープン
-    ws = open_google_spread()
-    
-    #指定カテゴリのシートを選択
-    ws = ws.worksheet(category)
-    
-    #指定したカテゴリシートの全データを取得
-    spread_datas = ws.get_all_values()
-    
-    #翻訳処理を開始
-    for data in spread_datas[1:]:
+    try:
+        logging.info('[INFO]【' + category + '】の翻訳処理を開始します。')
+        #ファイルオープン
+        ws = open_google_spread()
         
-        #製品名(B列）を日本語→韓国語に翻訳
-        data[1] = translate_ja_to_ko(data[1],category)
+        #指定カテゴリのシートを選択
+        ws = ws.worksheet(category)
         
-        #説明(AC列）を日本語→韓国語に翻訳
-        data[28] = translate_ja_to_ko(data[28],category)
+        #指定したカテゴリシートの全データを取得
+        spread_datas = ws.get_all_values()
         
-        #翻訳したAC列をAD列(説明2とする）にコピー
-        data[29] = data[28]
+        #翻訳処理を開始
+        for data in spread_datas[1:]:
+            
+            #製品名(B列）を日本語→韓国語に翻訳
+            data[1] = translate_ja_to_ko(data[1],category)
+            
+            #説明(AC列）を日本語→韓国語に翻訳/ 5000文字で切り捨てる
+            data[28] = translate_ja_to_ko(data[28][0:5000],category)
+            
+            #翻訳したAC列をAD列(説明2とする）にコピー
+            data[29] = data[28]
+            
+        # Excelファイルのカラムを定義
+        Coulum = spread_datas[0]
         
-    # Excelファイルのカラムを定義
-    Coulum = spread_datas[0]
-    
-    # データフレームを作成
-    df = pd.DataFrame(spread_datas[1:], columns=Coulum)
-    
-    #ファイルパスを生成
-    file_dir= os.path.join(os.getcwd(), "data")
-    if not os.path.exists(file_dir):
+        # データフレームを作成
+        df = pd.DataFrame(spread_datas[1:], columns=Coulum)
         
-        # ディレクトリが存在しない場合、ディレクトリを作成する
-        os.makedirs(file_dir)
-    
-    #現在日時を取得
-    date_time = datetime.now().strftime("%Y%m%d_%H%M%S")  
-    file_path = os.path.join(file_dir, "yodobashi_" + category + "_"  + date_time + ".xlsx")
-    df.to_excel( file_path, sheet_name=category, index=False)
+        #ファイルパスを生成
+        file_dir= os.path.join(os.getcwd(), "data")
+        if not os.path.exists(file_dir):
+            
+            # ディレクトリが存在しない場合、ディレクトリを作成する
+            os.makedirs(file_dir)
+        
+        #現在日時を取得
+        date_time = datetime.now().strftime("%Y%m%d_%H%M%S")  
+        file_path = os.path.join(file_dir, "yodobashi_" + category + "_"  + date_time + ".xlsx")
+        df.to_excel( file_path, sheet_name=category, index=False)
+        logging.info('[INFO]【' + category + '】の翻訳処理が正常終了しました。')
+    except Exception as e:
+        message = '[ERROR]Excel出力処理で予期せぬエラーが発生しました。'
+        write_error_log(message, e)
+
 
 
 def translate_ja_to_ko(text,category):
@@ -438,15 +444,19 @@ def translate_ja_to_ko(text,category):
                "X-NCP-APIGW-API-KEY": CLIENT_SECRET,
                "Content-Type Content-Type" : "application/json"}
     try:
-        
         # POSTリクエスト送信
         response = requests.post(POST_URL, json=request_body, headers=headers)
-        response = response.json()
-        translatedText = response['message']['result']['translatedText']
-        return translatedText
-
+        if response.status_code == 200:
+            response = response.json()
+            translatedText = response['message']['result']['translatedText']
+            return translatedText
+        else:
+            response = response.json()
+            logging.info('[ERROR]' + 'APIコールで予期せぬエラーが発生しました。')
+            logging.info('[ERROR]' + 'エラーコード：' + response['errorCode'])
+            sys.exit(1)
     except Exception as e:
-        message = '[ERROR]' + 'カテゴリ' + '【' + category + '】の翻訳処理で予期せぬエラーが発生しました。'
+        message = '[ERROR]APIコールで予期せぬエラーが発生しました。'
         write_error_log(message, e)
 
 
