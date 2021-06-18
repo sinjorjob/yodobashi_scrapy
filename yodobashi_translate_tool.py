@@ -7,6 +7,7 @@
 from utils import *
 from const import *
 from colorama import init
+import time
 
 init()
 
@@ -38,3 +39,4 @@ for category in category_array[1:]:
 
 print(Fore.WHITE + "[INFO]すべての処理が完了しました。")
 logging.info('[INFO]すべての処理が完了しました。')
+time.sleep(30)

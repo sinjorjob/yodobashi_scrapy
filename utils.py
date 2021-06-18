@@ -101,6 +101,8 @@ def write_error_log(message, e):
     logging.info(message)
     logging.info('[ERROR]エラー内容:%s', str(e.args))
     logging.exception('Detail: %s', e)
+    #30秒待ってから終了。
+    time.sleep(30)
     sys.exit(1)
 
 
@@ -120,6 +122,7 @@ def r_get(url, category):
             print(Fore.RED + f"[ERROR]指定したURL： {url} が存在しません。")
             print(Fore.RED + "[ERROR]処理を強制終了します。")
             logging.info('[ERROR]指定したURL：' + url + 'が存在しません。')
+            time.sleep(30)
             sys.exit(1)
     except Exception as e:
         message = '[ERROR]' + 'カテゴリ' + '【' + category + '】の商品情報の取得処理で予期せぬエラーが発生しました。'
@@ -312,7 +315,7 @@ def get_item_info(bs_target_item, category):
     try:
         
         #製品名の取得
-        product_name = bs_target_item.find("p", class_= "js_ppPrdName").text
+        product_name = bs_target_item.find(id= "products_maintitle").text
         
         #製品価格の取得
         product_price =bs_target_item.find("span", class_="price js_ppSalesPrice").text.split("￥")[-1]
@@ -386,7 +389,7 @@ def write_to_excel(category):
     戻り値：なし
     """
     try:
-        print(f"[INFO]【{category}】の翻訳処理を開始します。")
+        print(Fore.WHITE + f"[INFO]【{category}】の翻訳処理を開始します。")
         logging.info('[INFO]【' + category + '】の翻訳処理を開始します。')
         #ファイルオープン
         ws = open_google_spread()
@@ -426,7 +429,7 @@ def write_to_excel(category):
         date_time = datetime.now().strftime("%Y%m%d_%H%M%S")  
         file_path = os.path.join(file_dir, "yodobashi_" + category + "_"  + date_time + ".xlsx")
         df.to_excel( file_path, sheet_name=category, index=False)
-        print(f"[INFO]【{category} 】の翻訳処理が正常終了しました。")
+        print(Fore.WHITE + f"[INFO]【{category} 】の翻訳処理が正常終了しました。")
         logging.info('[INFO]【' + category + '】の翻訳処理が正常終了しました。')
     except Exception as e:
         print(Fore.RED + "[ERROR][ERROR]Excel出力処理で予期せぬエラーが発生しました。")
@@ -469,6 +472,7 @@ def translate_ja_to_ko(text,category):
             print(Fore.RED + "[ERROR]処理を強制終了します。")
             logging.info('[ERROR]' + 'APIコールで予期せぬエラーが発生しました。')
             logging.info('[ERROR]' + 'エラーコード：' + response['errorCode'])
+            time.sleep(30)
             sys.exit(1)
     except Exception as e:
         message = '[ERROR]APIコールで予期せぬエラーが発生しました。'

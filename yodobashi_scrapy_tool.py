@@ -5,6 +5,7 @@
 
 from utils import *
 from const import *
+import time
 
 #########################
 # main処理
@@ -140,6 +141,7 @@ try:
                 logging.info('[INFO]' + '【カテゴリ名：' + category +'】に対する新規商品データは１件もありませんでした。')
     print("[INFO]すべての処理が完了しました。")
     logging.info('[INFO]すべての処理が完了しました。')
+    time.sleep(30)
     
 
 except Exception as e:
