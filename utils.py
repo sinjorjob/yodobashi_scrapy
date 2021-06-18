@@ -12,7 +12,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
 from const import *
+from colorama import Fore
+from colorama import init
 
+init()
 
 ################################################################
 #環境変数のLOAD
@@ -92,6 +95,9 @@ def write_error_log(message, e):
     引数2：エラー情報
     戻り値：なし
     """
+    print(Fore.RED + "[ERROR]エラーが発生しました。")
+    print(Fore.RED + "[ERROR]エラー内容についてはlogsフォルダのログファイルを確認してください。")
+    print(Fore.RED + "[ERROR]処理を強制終了します。")
     logging.info(message)
     logging.info('[ERROR]エラー内容:%s', str(e.args))
     logging.exception('Detail: %s', e)
@@ -111,6 +117,8 @@ def r_get(url, category):
         response.encoding = response.apparent_encoding
         bs = BeautifulSoup(response.text, 'lxml')
         if not is_valid_page(bs):
+            print(Fore.RED + f"[ERROR]指定したURL： {url} が存在しません。")
+            print(Fore.RED + "[ERROR]処理を強制終了します。")
             logging.info('[ERROR]指定したURL：' + url + 'が存在しません。')
             sys.exit(1)
     except Exception as e:
@@ -217,16 +225,17 @@ def add_header_info_to_spread(category, header,rows, cols):
         #カテゴリ名のシートを作成
         try:
             ws.add_worksheet(title=category,rows=rows, cols=cols)
+            #追加したカテゴリーシートを選択
+            ws = ws.worksheet(category)
+        
+            #Header情報を追記
+            ws.append_row(header)
         except gspread.exceptions.APIError:
             
             #既にシートが存在する場合AIPErrorが発生するのでスキップして処理を続行させる。
             pass
             
-        #追加したカテゴリーシートを選択
-        ws = ws.worksheet(category)
-        
-        #Header情報を追記
-        ws.append_row(header)
+
     except Exception as e:
         message = '[ERROR]'  + category + 'シートへのヘッダ情報書込みで予期せぬエラーが発生しました。'
         write_error_log(message, e)
@@ -377,6 +386,7 @@ def write_to_excel(category):
     戻り値：なし
     """
     try:
+        print(f"[INFO]【{category}】の翻訳処理を開始します。")
         logging.info('[INFO]【' + category + '】の翻訳処理を開始します。')
         #ファイルオープン
         ws = open_google_spread()
@@ -416,8 +426,10 @@ def write_to_excel(category):
         date_time = datetime.now().strftime("%Y%m%d_%H%M%S")  
         file_path = os.path.join(file_dir, "yodobashi_" + category + "_"  + date_time + ".xlsx")
         df.to_excel( file_path, sheet_name=category, index=False)
+        print(f"[INFO]【{category} 】の翻訳処理が正常終了しました。")
         logging.info('[INFO]【' + category + '】の翻訳処理が正常終了しました。')
     except Exception as e:
+        print(Fore.RED + "[ERROR][ERROR]Excel出力処理で予期せぬエラーが発生しました。")
         message = '[ERROR]Excel出力処理で予期せぬエラーが発生しました。'
         write_error_log(message, e)
 
@@ -452,6 +464,9 @@ def translate_ja_to_ko(text,category):
             return translatedText
         else:
             response = response.json()
+            print(Fore.RED + "[ERROR]翻訳APIコールで予期せぬエラーが発生しました。")
+            print(Fore.RED + "[ERROR]エラー内容についてはlogsフォルダのログファイルを確認してください。")
+            print(Fore.RED + "[ERROR]処理を強制終了します。")
             logging.info('[ERROR]' + 'APIコールで予期せぬエラーが発生しました。')
             logging.info('[ERROR]' + 'エラーコード：' + response['errorCode'])
             sys.exit(1)
